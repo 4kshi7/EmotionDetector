@@ -6,26 +6,27 @@ import { Groq } from 'groq-sdk';
 dotenv.config();
 
 const app = express();
-const port = 3001;
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors());
 app.use(express.json());
 
 app.post('/api/analyze', async (req, res) => {
-  const { message } = req.body;
+  const { message } = req.body || {};
 
-  const prompt = `Given the input "${message}", respond with only one word representing the user's emotion from this list: crying, sad, neutral, happy, very_happy, angry.`;
+  if (!message) {
+    return res.status(400).json({ error: 'Missing message in request body' });
+  }
+
+  const prompt = `Given the input "${message}", respond with only one word representing the user's emotion from this list: crying, sad, neutral, happy, very_happy, angry. Please in the output give only one word`;
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'mixtral-8x7b-32768',
+      model: 'llama3-8b-8192',
       messages: [{ role: 'user', content: prompt }]
     });
 
     const emotion = response.choices[0].message.content.trim().toLowerCase();
-    // const emotion = "Happy"
     res.json({ emotion });
   } catch (err) {
     console.error('Groq error:', err);
@@ -33,6 +34,4 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+export default app;
